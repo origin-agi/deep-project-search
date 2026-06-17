@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.OrderEnumerator;
 import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.roots.ProjectRootManager;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 
@@ -17,6 +18,17 @@ import java.util.Set;
 
 final class DeepSearchService {
     private static final int MAX_RESULTS = 700;
+    private static final long MAX_TEXT_FILE_BYTES = 1_000_000L;
+    private static final Set<String> SKIPPED_PROJECT_DIRECTORIES = Set.of(
+            ".git",
+            ".gradle",
+            ".idea",
+            ".intellijPlatform",
+            "build",
+            "out",
+            "target",
+            "node_modules"
+    );
 
     private DeepSearchService() {
     }
@@ -40,28 +52,64 @@ final class DeepSearchService {
     private static void searchProjectFiles(Project project, String query, boolean caseSensitive, ProgressIndicator indicator, List<DeepSearchResult> results) {
         ProjectFileIndex fileIndex = ProjectRootManager.getInstance(project).getFileIndex();
         String basePath = project.getBasePath();
-        fileIndex.iterateContent(file -> {
-            ProgressManager.checkCanceled();
-            indicator.checkCanceled();
-            if (results.size() >= MAX_RESULTS) {
-                return false;
-            }
-            if (file.isDirectory() || fileIndex.isInLibrary(file) || fileIndex.isExcluded(file)) {
-                return true;
-            }
+        VirtualFile baseDirectory = project.getBaseDir();
+        if (baseDirectory == null) {
+            return;
+        }
+        collectProjectMatches(baseDirectory, baseDirectory, basePath, query, caseSensitive, fileIndex, indicator, results);
+    }
 
-            String path = displayProjectPath(file, basePath);
-            if (matches(file.getName(), path, query, caseSensitive)) {
-                results.add(new DeepSearchResult(
-                        DeepSearchResult.SourceType.PROJECT,
-                        file.getName(),
-                        path,
-                        MyMessageBundle.message("toolwindow.DeepProjectSearch.source.project"),
-                        file
-                ));
+    private static void collectProjectMatches(
+            VirtualFile root,
+            VirtualFile file,
+            String basePath,
+            String query,
+            boolean caseSensitive,
+            ProjectFileIndex fileIndex,
+            ProgressIndicator indicator,
+            List<DeepSearchResult> results
+    ) {
+        ProgressManager.checkCanceled();
+        indicator.checkCanceled();
+        if (results.size() >= MAX_RESULTS) {
+            return;
+        }
+
+        if (file.isDirectory()) {
+            if (!file.equals(root) && shouldSkipProjectDirectory(file, fileIndex)) {
+                return;
             }
-            return true;
-        });
+            for (VirtualFile child : file.getChildren()) {
+                collectProjectMatches(root, child, basePath, query, caseSensitive, fileIndex, indicator, results);
+                if (results.size() >= MAX_RESULTS) {
+                    return;
+                }
+            }
+            return;
+        }
+
+        if (fileIndex.isInLibrary(file)) {
+            return;
+        }
+
+        String path = displayProjectPath(file, basePath);
+        String source = MyMessageBundle.message("toolwindow.DeepProjectSearch.source.project");
+        boolean pathMatched = matches(file.getName(), path, query, caseSensitive);
+        int contentLine = findTextMatchLine(file, query, caseSensitive);
+        if (!pathMatched && contentLine < 0) {
+            return;
+        }
+        if (contentLine >= 0) {
+            source = source + " line " + contentLine;
+        }
+
+        results.add(new DeepSearchResult(
+                DeepSearchResult.SourceType.PROJECT,
+                file.getName(),
+                path,
+                source,
+                file
+        ));
     }
 
     private static void searchDependencyRoots(Project project, String query, boolean caseSensitive, ProgressIndicator indicator, List<DeepSearchResult> results) {
@@ -123,6 +171,31 @@ final class DeepSearchService {
             }
         }
         return true;
+    }
+
+    private static boolean shouldSkipProjectDirectory(VirtualFile directory, ProjectFileIndex fileIndex) {
+        return fileIndex.isExcluded(directory) || SKIPPED_PROJECT_DIRECTORIES.contains(directory.getName());
+    }
+
+    private static int findTextMatchLine(VirtualFile file, String query, boolean caseSensitive) {
+        if (!file.isValid() || file.getLength() > MAX_TEXT_FILE_BYTES || file.getFileType().isBinary()) {
+            return -1;
+        }
+
+        try {
+            String text = VfsUtilCore.loadText(file);
+            String searchableText = caseSensitive ? text : text.toLowerCase(Locale.ROOT);
+            int index = 0;
+            for (String token : query.split("\\s+")) {
+                index = searchableText.indexOf(token, index);
+                if (index < 0) {
+                    return -1;
+                }
+            }
+            return StringUtil.offsetToLineNumber(text, index) + 1;
+        } catch (Exception ignored) {
+            return -1;
+        }
     }
 
     private static String displayProjectPath(VirtualFile file, String basePath) {

@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.1.3]
+
+### Fixed
+
+- Search project file contents, including local ignored files under the project directory.
+
 ## [0.1.2]
 
 ### Added
