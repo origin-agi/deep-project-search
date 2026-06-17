@@ -1,0 +1,57 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <id>com.origin.idea.deepProjectSearch</id>
+    <name>Deep Project Search</name>
+    <vendor>yuanQ</vendor>
+
+    <description><![CDATA[
+        <h2>Deep Project Search</h2>
+
+        <p>
+            Deep Project Search adds a dedicated IntelliJ IDEA tool window for searching both
+            current project files and dependency jar entries in one place.
+        </p>
+
+        <p>
+            It is designed for cases where Search Everywhere may miss files inside dependency jars
+            until those classes or resources have been opened once.
+        </p>
+
+        <p><b>How to use</b></p>
+        <ul>
+            <li>Open the <b>Deep Search</b> tool window.</li>
+            <li>Enter a keyword such as <code>UserService</code>, <code>spring.factories</code>, or <code>META-INF services</code>.</li>
+            <li>Choose <b>All</b>, <b>Project Files</b>, or <b>Dependencies</b>.</li>
+            <li>Click <b>Search</b>.</li>
+            <li>Double-click a result to open the project file, jar resource, or class file.</li>
+        </ul>
+
+        <p><b>Features</b></p>
+        <ul>
+            <li>Searches current project files.</li>
+            <li>Searches dependency class and source roots, including jar entries.</li>
+            <li>Supports filename and path keyword matching.</li>
+            <li>Provides scope selection without taking over the double-Shift shortcut.</li>
+            <li>Runs searches in a background task.</li>
+        </ul>
+
+        <p><b>中文说明</b></p>
+        <p>
+            Deep Project Search 是一个独立的 IDEA 搜索工具窗口，用来统一搜索当前项目文件和依赖 jar
+            内部的 class/resource 文件。它不会占用 IDEA 双击 Shift 的快捷键。
+        </p>
+        <p>
+            适合搜索依赖包里的 <code>.class</code>、<code>META-INF</code>、<code>.properties</code>、
+            <code>.xml</code>、<code>.yml</code> 等文件，也可以同时搜索当前项目文件。
+        </p>
+        ]]></description>
+
+    <depends>com.intellij.java</depends>
+
+    <resource-bundle>messages.MyMessageBundle</resource-bundle>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="DeepProjectSearch" factoryClass="com.origin.idea.DeepProjectSearchToolWindowFactory"
+                    icon="AllIcons.Actions.Search"/>
+    </extensions>
+</idea-plugin>

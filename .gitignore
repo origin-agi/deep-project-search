@@ -1,0 +1,7 @@
+.gradle
+.idea
+.intellijPlatform
+build
+signing/*.pem
+signing/*.crt
+signing/*.properties
