@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [0.1.5]
+
+### Added
+
+- Search text content inside dependency source/resource roots and jar entries.
+- Added recent search history in the keyword field.
+- Added quick actions to open the selected result, copy its path, and clear results.
+
 ## [0.1.4]
 
 ### Added

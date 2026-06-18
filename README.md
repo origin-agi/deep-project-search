@@ -12,7 +12,7 @@ Supported scopes:
 
 - **All**: search project files and dependency roots.
 - **Project Files**: search files inside the current project.
-- **Dependencies**: search library class/source roots, including jar entries.
+- **Dependencies**: search library class/source/resource roots, including jar entries.
 
 Typical searches:
 
@@ -21,6 +21,7 @@ Typical searches:
 - Service loader files under `META-INF/services`.
 - XML, properties, YAML, and other files inside jars.
 - Current project source and resource files.
+- Text content inside dependency resources and sources.
 
 ## How To Use
 
@@ -31,16 +32,27 @@ Typical searches:
 5. Click **Search**, or press **Enter** while the keyword field is focused.
 6. Double-click a result, or press **Enter** on the selected result, to open it.
 
-For project file content matches, results show a short preview line and open directly at the matched line and column.
+The keyword field keeps recent searches, so you can rerun previous queries from the dropdown.
+
+For project and dependency text content matches, results show a short preview line and open directly at the matched line and column when possible.
+
+Quick actions:
+
+- **Open**: open the selected result.
+- **Copy Path**: copy the selected file or jar entry path.
+- **Clear**: clear the current result list.
 
 ## Features
 
 - Searches current project files.
 - Searches project text file contents.
 - Searches dependency class and source roots.
-- Searches jar entry names and paths.
-- Shows a preview line for project file content matches.
-- Opens project file content matches at the matched line and column.
+- Searches dependency text resources and source content where available.
+- Searches jar entry names, paths, and text content.
+- Shows a preview line for project and dependency content matches.
+- Opens text content matches at the matched line and column when possible.
+- Keeps recent search history.
+- Provides quick actions for opening results, copying paths, and clearing results.
 - Supports case-sensitive or case-insensitive matching.
 - Runs searches in a background task.
 - Does not override the double-Shift Search Everywhere shortcut.
@@ -60,7 +72,15 @@ Deep Project Search 是一个 Java 编写的 IntelliJ IDEA 插件，用独立工
 5. 点击 **Search**，或者在输入框中直接按 **Enter**。
 6. 双击结果，或者选中结果后按 **Enter**，打开对应文件、jar resource 或 class。
 
-如果命中的是项目文本文件内容，结果会显示一行预览，并在打开时直接跳转到命中行和命中列。
+输入框会保存最近搜索记录，可以从下拉列表里快速重复搜索。
+
+如果命中的是项目或依赖里的文本内容，结果会显示一行预览，并在可行时直接跳转到命中行和命中列。
+
+快捷操作：
+
+- **Open**：打开选中的结果。
+- **Copy Path**：复制选中文件或 jar entry 路径。
+- **Clear**：清空当前结果列表。
 
 ## Local Development
 

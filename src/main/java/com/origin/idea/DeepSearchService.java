@@ -150,18 +150,25 @@ final class DeepSearchService {
 
         String relativePath = VfsUtilCore.getRelativePath(file, root, '/');
         String path = relativePath == null ? file.getPath() : relativePath;
-        if (!matches(file.getName(), path, query, caseSensitive)) {
+        boolean pathMatched = matches(file.getName(), path, query, caseSensitive);
+        TextMatch textMatch = findTextMatch(file, query, caseSensitive);
+        if (!pathMatched && textMatch == null) {
             return;
+        }
+
+        String source = dependencySourceName(root);
+        if (textMatch != null) {
+            source = source + " line " + textMatch.lineNumber();
         }
 
         results.add(new DeepSearchResult(
                 DeepSearchResult.SourceType.DEPENDENCY,
                 file.getName(),
                 path,
-                dependencySourceName(root),
-                -1,
-                -1,
-                "",
+                source,
+                textMatch == null ? -1 : textMatch.lineNumber(),
+                textMatch == null ? -1 : textMatch.columnNumber(),
+                textMatch == null ? "" : textMatch.preview(),
                 file
         ));
     }

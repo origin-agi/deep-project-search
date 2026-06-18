@@ -1,8 +1,10 @@
 package com.origin.idea;
 
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
+import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
@@ -36,6 +38,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.datatransfer.StringSelection;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public final class DeepProjectSearchToolWindowFactory implements ToolWindowFactory {
@@ -52,8 +57,12 @@ public final class DeepProjectSearchToolWindowFactory implements ToolWindowFacto
     }
 
     private static final class DeepProjectSearchToolWindow {
+        private static final String HISTORY_KEY = "DeepProjectSearch.history";
+        private static final int MAX_HISTORY_ITEMS = 12;
+
         private final Project project;
-        private final JTextField queryField = new JTextField();
+        private final JComboBox<String> queryComboBox = new JComboBox<>();
+        private final JTextField queryField;
         private final JComboBox<SearchScopeOption> scopeComboBox = new JComboBox<>(SearchScopeOption.values());
         private final JCheckBox caseSensitiveCheckBox = new JCheckBox(MyMessageBundle.message("toolwindow.DeepProjectSearch.caseSensitive"));
         private final DefaultListModel<DeepSearchResult> resultListModel = new DefaultListModel<>();
@@ -63,6 +72,10 @@ public final class DeepProjectSearchToolWindowFactory implements ToolWindowFacto
 
         private DeepProjectSearchToolWindow(Project project) {
             this.project = project;
+            queryComboBox.setEditable(true);
+            loadSearchHistory();
+            Component editorComponent = queryComboBox.getEditor().getEditorComponent();
+            queryField = editorComponent instanceof JTextField textField ? textField : new JTextField();
             configureList();
             content.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
             content.add(createSearchBar(), BorderLayout.NORTH);
@@ -88,7 +101,7 @@ public final class DeepProjectSearchToolWindowFactory implements ToolWindowFacto
 
             JBPanel<?> queryPanel = new JBPanel<>(new BorderLayout(6, 0));
             queryPanel.add(new JBLabel(MyMessageBundle.message("toolwindow.DeepProjectSearch.query.label")), BorderLayout.WEST);
-            queryPanel.add(queryField, BorderLayout.CENTER);
+            queryPanel.add(queryComboBox, BorderLayout.CENTER);
             panel.add(queryPanel, BorderLayout.NORTH);
 
             JBPanel<?> controls = new JBPanel<>(new GridLayout(0, 1, 0, 6));
@@ -100,7 +113,16 @@ public final class DeepProjectSearchToolWindowFactory implements ToolWindowFacto
             JBPanel<?> actionRow = new JBPanel<>(new FlowLayout(FlowLayout.RIGHT, 8, 0));
             JButton searchButton = new JButton(MyMessageBundle.message("toolwindow.DeepProjectSearch.search.button"));
             searchButton.addActionListener(event -> runSearch());
+            JButton openButton = new JButton(MyMessageBundle.message("toolwindow.DeepProjectSearch.open.button"));
+            openButton.addActionListener(event -> openSelectedResult());
+            JButton copyPathButton = new JButton(MyMessageBundle.message("toolwindow.DeepProjectSearch.copyPath.button"));
+            copyPathButton.addActionListener(event -> copySelectedPath());
+            JButton clearButton = new JButton(MyMessageBundle.message("toolwindow.DeepProjectSearch.clear.button"));
+            clearButton.addActionListener(event -> clearResults());
             actionRow.add(searchButton);
+            actionRow.add(openButton);
+            actionRow.add(copyPathButton);
+            actionRow.add(clearButton);
             controls.add(actionRow);
 
             panel.add(controls, BorderLayout.CENTER);
@@ -136,6 +158,7 @@ public final class DeepProjectSearchToolWindowFactory implements ToolWindowFacto
                 return;
             }
 
+            rememberSearch(query.trim());
             statusLabel.setText(MyMessageBundle.message("toolwindow.DeepProjectSearch.status.searching"));
             ProgressManager.getInstance().run(new Task.Backgroundable(project, MyMessageBundle.message("toolwindow.DeepProjectSearch.progress.title"), false) {
                 @Override
@@ -177,6 +200,63 @@ public final class DeepProjectSearchToolWindowFactory implements ToolWindowFacto
                 return;
             }
             FileEditorManager.getInstance(project).openFile(result.getVirtualFile(), true, true);
+        }
+
+        private void copySelectedPath() {
+            DeepSearchResult result = resultList.getSelectedValue();
+            if (result == null || !result.getVirtualFile().isValid()) {
+                statusLabel.setText(MyMessageBundle.message("toolwindow.DeepProjectSearch.status.invalidResult"));
+                return;
+            }
+            CopyPasteManager.getInstance().setContents(new StringSelection(result.getVirtualFile().getPath()));
+            statusLabel.setText(MyMessageBundle.message("toolwindow.DeepProjectSearch.status.copiedPath"));
+        }
+
+        private void clearResults() {
+            resultListModel.clear();
+            statusLabel.setText(MyMessageBundle.message("toolwindow.DeepProjectSearch.status.ready"));
+            queryField.requestFocusInWindow();
+        }
+
+        private void loadSearchHistory() {
+            queryComboBox.removeAllItems();
+            for (String item : getStoredHistory()) {
+                queryComboBox.addItem(item);
+            }
+            queryComboBox.setToolTipText(MyMessageBundle.message("toolwindow.DeepProjectSearch.history.tooltip"));
+        }
+
+        private void rememberSearch(String query) {
+            List<String> history = new ArrayList<>();
+            history.add(query);
+            for (String item : getStoredHistory()) {
+                if (!item.equals(query)) {
+                    history.add(item);
+                }
+                if (history.size() >= MAX_HISTORY_ITEMS) {
+                    break;
+                }
+            }
+
+            PropertiesComponent.getInstance(project).setValue(HISTORY_KEY, String.join("\n", history));
+            queryComboBox.removeAllItems();
+            for (String item : history) {
+                queryComboBox.addItem(item);
+            }
+            queryField.setText(query);
+        }
+
+        private List<String> getStoredHistory() {
+            String stored = PropertiesComponent.getInstance(project).getValue(HISTORY_KEY, "");
+            if (stored.isBlank()) {
+                return List.of();
+            }
+            return Arrays.stream(stored.split("\\R"))
+                    .map(String::trim)
+                    .filter(item -> !item.isBlank())
+                    .distinct()
+                    .limit(MAX_HISTORY_ITEMS)
+                    .toList();
         }
     }
 

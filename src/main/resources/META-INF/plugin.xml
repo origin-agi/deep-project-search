@@ -9,7 +9,8 @@
 
         <p>
             Deep Project Search adds a dedicated IntelliJ IDEA tool window for searching both
-            current project files and dependency jar entries in one place.
+            current project files, project text content, dependency jar entries, and dependency
+            text resources in one place.
         </p>
 
         <p>
@@ -24,6 +25,8 @@
             <li>Choose <b>All</b>, <b>Project Files</b>, or <b>Dependencies</b>.</li>
             <li>Click <b>Search</b>, or press <b>Enter</b> from the keyword field.</li>
             <li>Double-click a result, or press <b>Enter</b> on the selected result, to open the project file, jar resource, or class file.</li>
+            <li>Use recent searches from the keyword dropdown to rerun previous queries.</li>
+            <li>Use quick actions to open results, copy paths, or clear the result list.</li>
         </ul>
 
         <p><b>Features</b></p>
@@ -31,9 +34,12 @@
             <li>Searches current project files.</li>
             <li>Searches project text file contents.</li>
             <li>Searches dependency class and source roots, including jar entries.</li>
-            <li>Supports filename, path, and project content keyword matching.</li>
-            <li>Shows a preview line for project file content matches.</li>
-            <li>Opens project file content matches directly at the matched line and column.</li>
+            <li>Searches dependency text resources and source content where available.</li>
+            <li>Supports filename, path, and text content keyword matching.</li>
+            <li>Shows a preview line for project and dependency content matches.</li>
+            <li>Opens text content matches directly at the matched line and column when possible.</li>
+            <li>Keeps recent search history.</li>
+            <li>Provides quick actions for opening results, copying paths, and clearing results.</li>
             <li>Provides scope selection without taking over the double-Shift shortcut.</li>
             <li>Runs searches in a background task.</li>
         </ul>
@@ -41,12 +47,13 @@
         <p><b>中文说明</b></p>
         <p>
             Deep Project Search 是一个独立的 IDEA 搜索工具窗口，用来统一搜索当前项目文件和依赖 jar
-            内部的 class/resource 文件。它不会占用 IDEA 双击 Shift 的快捷键。
+            内部的 class/resource 文件，也支持搜索项目和依赖中的文本内容。它不会占用 IDEA 双击 Shift 的快捷键。
         </p>
         <p>
             适合搜索依赖包里的 <code>.class</code>、<code>META-INF</code>、<code>.properties</code>、
             <code>.xml</code>、<code>.yml</code> 等文件，也可以同时搜索当前项目文件和文本内容。
-            项目内容命中会显示预览，并在打开时直接跳转到命中行。
+            文本内容命中会显示预览，并在可行时直接跳转到命中行。输入框会保留最近搜索记录，
+            结果列表支持打开、复制路径和清空等快捷操作。
         </p>
         ]]></description>
 
