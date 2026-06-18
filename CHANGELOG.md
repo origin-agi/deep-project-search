@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.1.7]
+
+### Fixed
+
+- Replaced deprecated project base directory API usage to keep Plugin Verifier reports clean.
+
 ## [0.1.6]
 
 ### Added

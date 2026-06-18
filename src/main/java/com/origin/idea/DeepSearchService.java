@@ -7,9 +7,11 @@ import com.intellij.openapi.roots.OrderEnumerator;
 import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -52,7 +54,7 @@ final class DeepSearchService {
     private static void searchProjectFiles(Project project, SmartSearchQuery query, ProgressIndicator indicator, List<DeepSearchResult> results) {
         ProjectFileIndex fileIndex = ProjectRootManager.getInstance(project).getFileIndex();
         String basePath = project.getBasePath();
-        VirtualFile baseDirectory = project.getBaseDir();
+        VirtualFile baseDirectory = basePath == null ? null : VfsUtil.findFile(Path.of(basePath), true);
         if (baseDirectory == null) {
             return;
         }
