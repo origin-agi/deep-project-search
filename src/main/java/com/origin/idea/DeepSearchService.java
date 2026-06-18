@@ -31,6 +31,9 @@ final class DeepSearchService {
             "target",
             "node_modules"
     );
+    private static final Set<String> FRONTEND_DEPENDENCY_DIRECTORIES = Set.of(
+            "node_modules"
+    );
 
     private DeepSearchService() {
     }
@@ -120,6 +123,7 @@ final class DeepSearchService {
         Set<VirtualFile> roots = new LinkedHashSet<>();
         roots.addAll(List.of(OrderEnumerator.orderEntries(project).withoutSdk().librariesOnly().recursively().classes().getRoots()));
         roots.addAll(List.of(OrderEnumerator.orderEntries(project).withoutSdk().librariesOnly().recursively().sources().getRoots()));
+        addFrontendDependencyRoots(project, roots, indicator);
 
         for (VirtualFile root : roots) {
             ProgressManager.checkCanceled();
@@ -128,6 +132,33 @@ final class DeepSearchService {
                 return;
             }
             collectDependencyMatches(root, root, query, indicator, results);
+        }
+    }
+
+    private static void addFrontendDependencyRoots(Project project, Set<VirtualFile> roots, ProgressIndicator indicator) {
+        String basePath = project.getBasePath();
+        VirtualFile baseDirectory = basePath == null ? null : VfsUtil.findFile(Path.of(basePath), true);
+        if (baseDirectory == null) {
+            return;
+        }
+        collectFrontendDependencyRoots(baseDirectory, roots, indicator);
+    }
+
+    private static void collectFrontendDependencyRoots(VirtualFile directory, Set<VirtualFile> roots, ProgressIndicator indicator) {
+        ProgressManager.checkCanceled();
+        indicator.checkCanceled();
+        if (!directory.isDirectory()) {
+            return;
+        }
+        if (FRONTEND_DEPENDENCY_DIRECTORIES.contains(directory.getName())) {
+            roots.add(directory);
+            return;
+        }
+        if (shouldSkipFrontendRootScan(directory)) {
+            return;
+        }
+        for (VirtualFile child : directory.getChildren()) {
+            collectFrontendDependencyRoots(child, roots, indicator);
         }
     }
 
@@ -175,6 +206,10 @@ final class DeepSearchService {
 
     private static boolean shouldSkipProjectDirectory(VirtualFile directory, ProjectFileIndex fileIndex) {
         return fileIndex.isExcluded(directory) || SKIPPED_PROJECT_DIRECTORIES.contains(directory.getName());
+    }
+
+    private static boolean shouldSkipFrontendRootScan(VirtualFile directory) {
+        return !directory.isDirectory() || SKIPPED_PROJECT_DIRECTORIES.contains(directory.getName());
     }
 
     private static TextMatch findTextMatch(VirtualFile file, SmartSearchQuery query) {

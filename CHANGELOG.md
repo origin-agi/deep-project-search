@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.2.0]
+
+### Added
+
+- Added platform-level compatibility so the plugin can support WebStorm and other JetBrains IDEs.
+- Added frontend dependency directory search for `node_modules` while keeping existing IntelliJ IDEA library and jar search behavior.
+
 ## [0.1.7]
 
 ### Fixed
