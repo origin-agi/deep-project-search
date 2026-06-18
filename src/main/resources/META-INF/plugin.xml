@@ -8,9 +8,9 @@
         <h2>Deep Project Search</h2>
 
         <p>
-            Deep Project Search adds a dedicated IntelliJ IDEA tool window for searching both
-            current project files, project text content, dependency jar entries, and dependency
-            text resources in one place.
+            Deep Project Search adds a dedicated JetBrains IDE tool window for searching current
+            project files, project text content, Java library roots, dependency jar entries,
+            dependency text resources, and frontend package directories in one place.
         </p>
 
         <p>
@@ -19,8 +19,8 @@
         </p>
 
         <p>
-            It is designed for cases where Search Everywhere may miss files inside dependency jars
-            until those classes or resources have been opened once.
+            It is designed for cases where Search Everywhere may miss files inside dependency jars,
+            package directories, or generated dependency resources until they have been opened once.
         </p>
 
         <p><b>How to use</b></p>
@@ -29,7 +29,7 @@
             <li>Enter a keyword such as <code>UserService</code>, <code>spring.factories</code>, or <code>META-INF services</code>.</li>
             <li>Choose <b>All</b>, <b>Project Files</b>, or <b>Dependencies</b>.</li>
             <li>Click <b>Search</b>, or press <b>Enter</b> from the keyword field.</li>
-            <li>Double-click a result, or press <b>Enter</b> on the selected result, to open the project file, jar resource, or class file.</li>
+            <li>Double-click a result, or press <b>Enter</b> on the selected result, to open the project file, package file, jar resource, or class file.</li>
             <li>Use recent searches from the keyword dropdown to rerun previous queries.</li>
             <li>Use quick actions to open results, copy paths, or clear the result list.</li>
         </ul>
@@ -48,7 +48,8 @@
         <ul>
             <li>Searches current project files.</li>
             <li>Searches project text file contents.</li>
-            <li>Searches dependency class and source roots, including jar entries.</li>
+            <li>Searches Java dependency class and source roots, including jar entries.</li>
+            <li>Searches frontend dependency directories such as <code>node_modules</code>.</li>
             <li>Searches dependency text resources and source content where available.</li>
             <li>Supports filename, path, and text content keyword matching.</li>
             <li>Supports Smart Search phrases, wildcards, regex queries, and lightweight scope prefixes.</li>
@@ -62,12 +63,14 @@
 
         <p><b>中文说明</b></p>
         <p>
-            Deep Project Search 是一个独立的 IDEA 搜索工具窗口，用来统一搜索当前项目文件和依赖 jar
-            内部的 class/resource 文件，也支持搜索项目和依赖中的文本内容。它不会占用 IDEA 双击 Shift 的快捷键。
+            Deep Project Search 是一个独立的 JetBrains IDE 搜索工具窗口，用来统一搜索当前项目文件、Java
+            依赖 jar 内部的 class/resource 文件，以及前端项目中的 <code>node_modules</code> 依赖文件。
+            它也支持搜索项目和依赖中的文本内容，不会占用 IDE 双击 Shift 的快捷键。
         </p>
         <p>
             适合搜索依赖包里的 <code>.class</code>、<code>META-INF</code>、<code>.properties</code>、
-            <code>.xml</code>、<code>.yml</code> 等文件，也可以同时搜索当前项目文件和文本内容。
+            <code>.xml</code>、<code>.yml</code> 等文件，也适合在 WebStorm 等前端项目中搜索
+            <code>node_modules</code> 下的包文件，同时可以搜索当前项目文件和文本内容。
             文本内容命中会显示预览，并在可行时直接跳转到命中行。输入框会保留最近搜索记录，
             结果列表支持打开、复制路径和清空等快捷操作。
         </p>
@@ -78,7 +81,7 @@
         </p>
         ]]></description>
 
-    <depends>com.intellij.java</depends>
+    <depends>com.intellij.modules.platform</depends>
 
     <resource-bundle>messages.MyMessageBundle</resource-bundle>
 

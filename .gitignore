@@ -1,6 +1,7 @@
 .gradle
 .idea
 .intellijPlatform
+.DS_Store
 build
 signing/*.pem
 signing/*.crt

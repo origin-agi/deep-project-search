@@ -23,6 +23,7 @@ The default user flow remains:
 ## Defaults And Compatibility
 
 - Queries without `project:` or `dep:` continue to use the visible `All / Project Files / Dependencies` scope dropdown.
+- The `Dependencies` scope is IDE-aware: in IntelliJ IDEA it includes library roots and jar entries; in WebStorm and frontend projects it also includes dependency directories such as `node_modules`.
 - Invalid regex queries do not show errors or interrupt the user. They fall back to normal text search.
 - Wildcard queries intentionally match file names and paths only, not file content.
 - Smart Search is backward-compatible with normal keyword search.

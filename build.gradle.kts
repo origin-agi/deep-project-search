@@ -23,9 +23,6 @@ dependencies {
         intellijIdea("2025.3.5")
         testFramework(TestFrameworkType.Platform)
         zipSigner()
-
-        // Add plugin dependencies for compilation here:
-        bundledPlugin("com.intellij.java")
     }
 }
 
@@ -33,6 +30,7 @@ intellijPlatform {
     pluginVerification {
         ides {
             current()
+            create("WS", "2025.3.5")
         }
     }
 
