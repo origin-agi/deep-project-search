@@ -19,6 +19,7 @@ import java.util.Set;
 final class DeepSearchService {
     private static final int MAX_RESULTS = 700;
     private static final long MAX_TEXT_FILE_BYTES = 1_000_000L;
+    private static final int MAX_PREVIEW_CHARS = 220;
     private static final Set<String> SKIPPED_PROJECT_DIRECTORIES = Set.of(
             ".git",
             ".gradle",
@@ -95,12 +96,12 @@ final class DeepSearchService {
         String path = displayProjectPath(file, basePath);
         String source = MyMessageBundle.message("toolwindow.DeepProjectSearch.source.project");
         boolean pathMatched = matches(file.getName(), path, query, caseSensitive);
-        int contentLine = findTextMatchLine(file, query, caseSensitive);
-        if (!pathMatched && contentLine < 0) {
+        TextMatch textMatch = findTextMatch(file, query, caseSensitive);
+        if (!pathMatched && textMatch == null) {
             return;
         }
-        if (contentLine >= 0) {
-            source = source + " line " + contentLine;
+        if (textMatch != null) {
+            source = source + " line " + textMatch.lineNumber();
         }
 
         results.add(new DeepSearchResult(
@@ -108,6 +109,9 @@ final class DeepSearchService {
                 file.getName(),
                 path,
                 source,
+                textMatch == null ? -1 : textMatch.lineNumber(),
+                textMatch == null ? -1 : textMatch.columnNumber(),
+                textMatch == null ? "" : textMatch.preview(),
                 file
         ));
     }
@@ -155,6 +159,9 @@ final class DeepSearchService {
                 file.getName(),
                 path,
                 dependencySourceName(root),
+                -1,
+                -1,
+                "",
                 file
         ));
     }
@@ -177,25 +184,44 @@ final class DeepSearchService {
         return fileIndex.isExcluded(directory) || SKIPPED_PROJECT_DIRECTORIES.contains(directory.getName());
     }
 
-    private static int findTextMatchLine(VirtualFile file, String query, boolean caseSensitive) {
+    private static TextMatch findTextMatch(VirtualFile file, String query, boolean caseSensitive) {
         if (!file.isValid() || file.getLength() > MAX_TEXT_FILE_BYTES || file.getFileType().isBinary()) {
-            return -1;
+            return null;
         }
 
         try {
             String text = VfsUtilCore.loadText(file);
             String searchableText = caseSensitive ? text : text.toLowerCase(Locale.ROOT);
             int index = 0;
+            int firstIndex = -1;
             for (String token : query.split("\\s+")) {
                 index = searchableText.indexOf(token, index);
                 if (index < 0) {
-                    return -1;
+                    return null;
+                }
+                if (firstIndex < 0) {
+                    firstIndex = index;
                 }
             }
-            return StringUtil.offsetToLineNumber(text, index) + 1;
+            int lineStart = text.lastIndexOf('\n', Math.max(0, firstIndex - 1)) + 1;
+            int lineEnd = text.indexOf('\n', firstIndex);
+            if (lineEnd < 0) {
+                lineEnd = text.length();
+            }
+            int lineNumber = StringUtil.offsetToLineNumber(text, firstIndex) + 1;
+            int columnNumber = Math.max(0, firstIndex - lineStart);
+            return new TextMatch(lineNumber, columnNumber, buildPreview(text.substring(lineStart, lineEnd)));
         } catch (Exception ignored) {
-            return -1;
+            return null;
         }
+    }
+
+    private static String buildPreview(String lineText) {
+        String preview = lineText.replace('\t', ' ').trim().replaceAll("\\s+", " ");
+        if (preview.length() <= MAX_PREVIEW_CHARS) {
+            return preview;
+        }
+        return preview.substring(0, MAX_PREVIEW_CHARS - 1) + "...";
     }
 
     private static String displayProjectPath(VirtualFile file, String basePath) {
@@ -215,5 +241,8 @@ final class DeepSearchService {
             return url.substring(slashIndex + 1, jarIndex + 4);
         }
         return root.getName();
+    }
+
+    private record TextMatch(int lineNumber, int columnNumber, String preview) {
     }
 }

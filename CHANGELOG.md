@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.1.4]
+
+### Added
+
+- Added result previews for project file content matches.
+- Open project file content matches directly at the matched line and column.
+
 ## [0.1.3]
 
 ### Fixed

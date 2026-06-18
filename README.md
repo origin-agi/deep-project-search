@@ -28,14 +28,19 @@ Typical searches:
 2. Open the **Deep Search** tool window.
 3. Enter a keyword.
 4. Choose **All**, **Project Files**, or **Dependencies**.
-5. Click **Search**.
-6. Double-click a result to open it.
+5. Click **Search**, or press **Enter** while the keyword field is focused.
+6. Double-click a result, or press **Enter** on the selected result, to open it.
+
+For project file content matches, results show a short preview line and open directly at the matched line and column.
 
 ## Features
 
 - Searches current project files.
+- Searches project text file contents.
 - Searches dependency class and source roots.
 - Searches jar entry names and paths.
+- Shows a preview line for project file content matches.
+- Opens project file content matches at the matched line and column.
 - Supports case-sensitive or case-insensitive matching.
 - Runs searches in a background task.
 - Does not override the double-Shift Search Everywhere shortcut.
@@ -52,8 +57,10 @@ Deep Project Search 是一个 Java 编写的 IntelliJ IDEA 插件，用独立工
 2. 打开左侧 **Deep Search** 工具窗口。
 3. 输入关键字。
 4. 选择搜索范围：**All**、**Project Files** 或 **Dependencies**。
-5. 点击 **Search**。
-6. 双击结果打开对应文件、jar resource 或 class。
+5. 点击 **Search**，或者在输入框中直接按 **Enter**。
+6. 双击结果，或者选中结果后按 **Enter**，打开对应文件、jar resource 或 class。
+
+如果命中的是项目文本文件内容，结果会显示一行预览，并在打开时直接跳转到命中行和命中列。
 
 ## Local Development
 

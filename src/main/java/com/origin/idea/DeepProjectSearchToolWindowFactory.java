@@ -2,6 +2,7 @@ package com.origin.idea;
 
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
@@ -166,6 +167,15 @@ public final class DeepProjectSearchToolWindowFactory implements ToolWindowFacto
                 statusLabel.setText(MyMessageBundle.message("toolwindow.DeepProjectSearch.status.invalidResult"));
                 return;
             }
+            if (result.getLineNumber() > 0) {
+                new OpenFileDescriptor(
+                        project,
+                        result.getVirtualFile(),
+                        result.getLineNumber() - 1,
+                        Math.max(0, result.getColumnNumber())
+                ).navigate(true);
+                return;
+            }
             FileEditorManager.getInstance(project).openFile(result.getVirtualFile(), true, true);
         }
     }
@@ -175,10 +185,15 @@ public final class DeepProjectSearchToolWindowFactory implements ToolWindowFacto
         public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
             Component component = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (component instanceof JLabel label && value instanceof DeepSearchResult result) {
+                String preview = result.getPreview();
+                String previewHtml = preview == null || preview.isBlank()
+                        ? ""
+                        : "<br><small><code>" + escapeHtml(preview) + "</code></small>";
                 label.setText("<html><b>" + escapeHtml(result.getName()) + "</b> <small>"
                         + escapeHtml(result.getSourceType().name()) + "</small><br><small>"
                         + escapeHtml(result.getPath()) + "<br>"
-                        + escapeHtml(result.getSource()) + "</small></html>");
+                        + escapeHtml(result.getSource()) + "</small>"
+                        + previewHtml + "</html>");
                 label.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
             }
             return component;

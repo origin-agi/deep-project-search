@@ -22,15 +22,18 @@
             <li>Open the <b>Deep Search</b> tool window.</li>
             <li>Enter a keyword such as <code>UserService</code>, <code>spring.factories</code>, or <code>META-INF services</code>.</li>
             <li>Choose <b>All</b>, <b>Project Files</b>, or <b>Dependencies</b>.</li>
-            <li>Click <b>Search</b>.</li>
-            <li>Double-click a result to open the project file, jar resource, or class file.</li>
+            <li>Click <b>Search</b>, or press <b>Enter</b> from the keyword field.</li>
+            <li>Double-click a result, or press <b>Enter</b> on the selected result, to open the project file, jar resource, or class file.</li>
         </ul>
 
         <p><b>Features</b></p>
         <ul>
             <li>Searches current project files.</li>
+            <li>Searches project text file contents.</li>
             <li>Searches dependency class and source roots, including jar entries.</li>
-            <li>Supports filename and path keyword matching.</li>
+            <li>Supports filename, path, and project content keyword matching.</li>
+            <li>Shows a preview line for project file content matches.</li>
+            <li>Opens project file content matches directly at the matched line and column.</li>
             <li>Provides scope selection without taking over the double-Shift shortcut.</li>
             <li>Runs searches in a background task.</li>
         </ul>
@@ -42,7 +45,8 @@
         </p>
         <p>
             适合搜索依赖包里的 <code>.class</code>、<code>META-INF</code>、<code>.properties</code>、
-            <code>.xml</code>、<code>.yml</code> 等文件，也可以同时搜索当前项目文件。
+            <code>.xml</code>、<code>.yml</code> 等文件，也可以同时搜索当前项目文件和文本内容。
+            项目内容命中会显示预览，并在打开时直接跳转到命中行。
         </p>
         ]]></description>
 
