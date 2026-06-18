@@ -14,6 +14,11 @@
         </p>
 
         <p>
+            Smart Search keeps the UI small while supporting phrases, wildcards, regex queries,
+            and lightweight scope prefixes from the same keyword field.
+        </p>
+
+        <p>
             It is designed for cases where Search Everywhere may miss files inside dependency jars
             until those classes or resources have been opened once.
         </p>
@@ -29,6 +34,16 @@
             <li>Use quick actions to open results, copy paths, or clear the result list.</li>
         </ul>
 
+        <p><b>Smart Search examples</b></p>
+        <ul>
+            <li><code>password</code> for normal keyword search.</li>
+            <li><code>"spring boot"</code> for phrase search.</li>
+            <li><code>*.properties</code> for wildcard file name/path search.</li>
+            <li><code>/BeanFactory.*/</code> for regex search.</li>
+            <li><code>project: password</code> to search only project files.</li>
+            <li><code>dep: spring.factories</code> to search only dependencies.</li>
+        </ul>
+
         <p><b>Features</b></p>
         <ul>
             <li>Searches current project files.</li>
@@ -36,6 +51,7 @@
             <li>Searches dependency class and source roots, including jar entries.</li>
             <li>Searches dependency text resources and source content where available.</li>
             <li>Supports filename, path, and text content keyword matching.</li>
+            <li>Supports Smart Search phrases, wildcards, regex queries, and lightweight scope prefixes.</li>
             <li>Shows a preview line for project and dependency content matches.</li>
             <li>Opens text content matches directly at the matched line and column when possible.</li>
             <li>Keeps recent search history.</li>
@@ -54,6 +70,11 @@
             <code>.xml</code>、<code>.yml</code> 等文件，也可以同时搜索当前项目文件和文本内容。
             文本内容命中会显示预览，并在可行时直接跳转到命中行。输入框会保留最近搜索记录，
             结果列表支持打开、复制路径和清空等快捷操作。
+        </p>
+        <p>
+            Smart Search 支持 <code>"spring boot"</code> 短语、<code>*.properties</code> 通配符、
+            <code>/BeanFactory.*/</code> 正则，以及 <code>project:</code> / <code>dep:</code> 轻量范围前缀，
+            不需要增加额外按钮或高级面板。
         </p>
         ]]></description>
 

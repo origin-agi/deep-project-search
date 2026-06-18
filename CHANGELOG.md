@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.1.6]
+
+### Added
+
+- Added Smart Search syntax for phrases, wildcards, regex queries, and lightweight scope prefixes.
+- Added `docs/smart-search-plan.md` to document the product direction and supported query behavior.
+
 ## [0.1.5]
 
 ### Added

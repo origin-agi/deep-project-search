@@ -13,7 +13,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 final class DeepSearchService {
@@ -35,37 +34,36 @@ final class DeepSearchService {
     }
 
     static List<DeepSearchResult> search(Project project, String query, SearchScopeOption scope, boolean caseSensitive, ProgressIndicator indicator) {
-        String normalizedQuery = caseSensitive ? query.trim() : query.trim().toLowerCase(Locale.ROOT);
+        SmartSearchQuery smartQuery = SmartSearchQuery.parse(query, scope, caseSensitive);
         List<DeepSearchResult> results = new ArrayList<>();
-        if (normalizedQuery.isBlank()) {
+        if (smartQuery.isBlank()) {
             return results;
         }
 
-        if (scope.includesProjectFiles()) {
-            searchProjectFiles(project, normalizedQuery, caseSensitive, indicator, results);
+        if (smartQuery.includesProjectFiles()) {
+            searchProjectFiles(project, smartQuery, indicator, results);
         }
-        if (scope.includesDependencies() && results.size() < MAX_RESULTS) {
-            searchDependencyRoots(project, normalizedQuery, caseSensitive, indicator, results);
+        if (smartQuery.includesDependencies() && results.size() < MAX_RESULTS) {
+            searchDependencyRoots(project, smartQuery, indicator, results);
         }
         return results;
     }
 
-    private static void searchProjectFiles(Project project, String query, boolean caseSensitive, ProgressIndicator indicator, List<DeepSearchResult> results) {
+    private static void searchProjectFiles(Project project, SmartSearchQuery query, ProgressIndicator indicator, List<DeepSearchResult> results) {
         ProjectFileIndex fileIndex = ProjectRootManager.getInstance(project).getFileIndex();
         String basePath = project.getBasePath();
         VirtualFile baseDirectory = project.getBaseDir();
         if (baseDirectory == null) {
             return;
         }
-        collectProjectMatches(baseDirectory, baseDirectory, basePath, query, caseSensitive, fileIndex, indicator, results);
+        collectProjectMatches(baseDirectory, baseDirectory, basePath, query, fileIndex, indicator, results);
     }
 
     private static void collectProjectMatches(
             VirtualFile root,
             VirtualFile file,
             String basePath,
-            String query,
-            boolean caseSensitive,
+            SmartSearchQuery query,
             ProjectFileIndex fileIndex,
             ProgressIndicator indicator,
             List<DeepSearchResult> results
@@ -81,7 +79,7 @@ final class DeepSearchService {
                 return;
             }
             for (VirtualFile child : file.getChildren()) {
-                collectProjectMatches(root, child, basePath, query, caseSensitive, fileIndex, indicator, results);
+                collectProjectMatches(root, child, basePath, query, fileIndex, indicator, results);
                 if (results.size() >= MAX_RESULTS) {
                     return;
                 }
@@ -95,8 +93,8 @@ final class DeepSearchService {
 
         String path = displayProjectPath(file, basePath);
         String source = MyMessageBundle.message("toolwindow.DeepProjectSearch.source.project");
-        boolean pathMatched = matches(file.getName(), path, query, caseSensitive);
-        TextMatch textMatch = findTextMatch(file, query, caseSensitive);
+        boolean pathMatched = query.matchesPath(file.getName(), path);
+        TextMatch textMatch = findTextMatch(file, query);
         if (!pathMatched && textMatch == null) {
             return;
         }
@@ -116,7 +114,7 @@ final class DeepSearchService {
         ));
     }
 
-    private static void searchDependencyRoots(Project project, String query, boolean caseSensitive, ProgressIndicator indicator, List<DeepSearchResult> results) {
+    private static void searchDependencyRoots(Project project, SmartSearchQuery query, ProgressIndicator indicator, List<DeepSearchResult> results) {
         Set<VirtualFile> roots = new LinkedHashSet<>();
         roots.addAll(List.of(OrderEnumerator.orderEntries(project).withoutSdk().librariesOnly().recursively().classes().getRoots()));
         roots.addAll(List.of(OrderEnumerator.orderEntries(project).withoutSdk().librariesOnly().recursively().sources().getRoots()));
@@ -127,11 +125,11 @@ final class DeepSearchService {
             if (results.size() >= MAX_RESULTS) {
                 return;
             }
-            collectDependencyMatches(root, root, query, caseSensitive, indicator, results);
+            collectDependencyMatches(root, root, query, indicator, results);
         }
     }
 
-    private static void collectDependencyMatches(VirtualFile root, VirtualFile file, String query, boolean caseSensitive, ProgressIndicator indicator, List<DeepSearchResult> results) {
+    private static void collectDependencyMatches(VirtualFile root, VirtualFile file, SmartSearchQuery query, ProgressIndicator indicator, List<DeepSearchResult> results) {
         ProgressManager.checkCanceled();
         indicator.checkCanceled();
         if (results.size() >= MAX_RESULTS) {
@@ -140,7 +138,7 @@ final class DeepSearchService {
 
         if (file.isDirectory()) {
             for (VirtualFile child : file.getChildren()) {
-                collectDependencyMatches(root, child, query, caseSensitive, indicator, results);
+                collectDependencyMatches(root, child, query, indicator, results);
                 if (results.size() >= MAX_RESULTS) {
                     return;
                 }
@@ -150,8 +148,8 @@ final class DeepSearchService {
 
         String relativePath = VfsUtilCore.getRelativePath(file, root, '/');
         String path = relativePath == null ? file.getPath() : relativePath;
-        boolean pathMatched = matches(file.getName(), path, query, caseSensitive);
-        TextMatch textMatch = findTextMatch(file, query, caseSensitive);
+        boolean pathMatched = query.matchesPath(file.getName(), path);
+        TextMatch textMatch = findTextMatch(file, query);
         if (!pathMatched && textMatch == null) {
             return;
         }
@@ -173,42 +171,20 @@ final class DeepSearchService {
         ));
     }
 
-    private static boolean matches(String name, String path, String query, boolean caseSensitive) {
-        String haystack = name + " " + path;
-        if (!caseSensitive) {
-            haystack = haystack.toLowerCase(Locale.ROOT);
-        }
-
-        for (String token : query.split("\\s+")) {
-            if (!haystack.contains(token)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     private static boolean shouldSkipProjectDirectory(VirtualFile directory, ProjectFileIndex fileIndex) {
         return fileIndex.isExcluded(directory) || SKIPPED_PROJECT_DIRECTORIES.contains(directory.getName());
     }
 
-    private static TextMatch findTextMatch(VirtualFile file, String query, boolean caseSensitive) {
+    private static TextMatch findTextMatch(VirtualFile file, SmartSearchQuery query) {
         if (!file.isValid() || file.getLength() > MAX_TEXT_FILE_BYTES || file.getFileType().isBinary()) {
             return null;
         }
 
         try {
             String text = VfsUtilCore.loadText(file);
-            String searchableText = caseSensitive ? text : text.toLowerCase(Locale.ROOT);
-            int index = 0;
-            int firstIndex = -1;
-            for (String token : query.split("\\s+")) {
-                index = searchableText.indexOf(token, index);
-                if (index < 0) {
-                    return null;
-                }
-                if (firstIndex < 0) {
-                    firstIndex = index;
-                }
+            int firstIndex = query.findContentIndex(text);
+            if (firstIndex < 0) {
+                return null;
             }
             int lineStart = text.lastIndexOf('\n', Math.max(0, firstIndex - 1)) + 1;
             int lineEnd = text.indexOf('\n', firstIndex);

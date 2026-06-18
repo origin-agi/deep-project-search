@@ -8,6 +8,8 @@ It is intended to complement IDEA's built-in Search Everywhere when dependency f
 
 Deep Project Search adds a **Deep Search** tool window with one search box, scope selection, and a result list.
 
+Smart Search keeps the UI small while supporting phrases, wildcards, regex queries, and lightweight scope prefixes from the same keyword field.
+
 Supported scopes:
 
 - **All**: search project files and dependency roots.
@@ -22,6 +24,17 @@ Typical searches:
 - XML, properties, YAML, and other files inside jars.
 - Current project source and resource files.
 - Text content inside dependency resources and sources.
+
+Smart Search examples:
+
+- `password`: normal keyword search.
+- `"spring boot"`: phrase search.
+- `*.properties`: wildcard file name/path search.
+- `/BeanFactory.*/`: regex search.
+- `project: password`: search only project files.
+- `dep: spring.factories`: search only dependencies.
+
+The Smart Search product rules are documented in [docs/smart-search-plan.md](docs/smart-search-plan.md).
 
 ## How To Use
 
@@ -49,6 +62,7 @@ Quick actions:
 - Searches dependency class and source roots.
 - Searches dependency text resources and source content where available.
 - Searches jar entry names, paths, and text content.
+- Supports Smart Search phrases, wildcards, regex queries, and lightweight scope prefixes.
 - Shows a preview line for project and dependency content matches.
 - Opens text content matches at the matched line and column when possible.
 - Keeps recent search history.
@@ -62,6 +76,8 @@ Quick actions:
 Deep Project Search 是一个 Java 编写的 IntelliJ IDEA 插件，用独立工具窗口统一搜索当前项目文件和依赖 jar 内部文件。
 
 它适合补足 IDEA 双击 Shift 搜索在某些依赖 jar 文件上不稳定的问题，比如某个 jar 里的 class/resource 打开过之后才能搜到。
+
+Smart Search 让插件保持简单：仍然只有一个关键字输入框，但可以自动识别短语、通配符、正则和轻量范围前缀。
 
 使用方式：
 
@@ -81,6 +97,15 @@ Deep Project Search 是一个 Java 编写的 IntelliJ IDEA 插件，用独立工
 - **Open**：打开选中的结果。
 - **Copy Path**：复制选中文件或 jar entry 路径。
 - **Clear**：清空当前结果列表。
+
+Smart Search 示例：
+
+- `password`：普通关键字搜索。
+- `"spring boot"`：完整短语搜索。
+- `*.properties`：按文件名或路径通配符搜索。
+- `/BeanFactory.*/`：正则搜索。
+- `project: password`：只搜索项目文件。
+- `dep: spring.factories`：只搜索依赖。
 
 ## Local Development
 
