@@ -10,17 +10,26 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileVisitor;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
+
+import org.jetbrains.annotations.NotNull;
 
 final class DeepSearchService {
     private static final int MAX_RESULTS = 700;
     private static final long MAX_TEXT_FILE_BYTES = 1_000_000L;
     private static final int MAX_PREVIEW_CHARS = 220;
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
     private static final Set<String> SKIPPED_PROJECT_DIRECTORIES = Set.of(
             ".git",
             ".gradle",
@@ -61,62 +70,47 @@ final class DeepSearchService {
         if (baseDirectory == null) {
             return;
         }
-        collectProjectMatches(baseDirectory, baseDirectory, basePath, query, fileIndex, indicator, results);
-    }
-
-    private static void collectProjectMatches(
-            VirtualFile root,
-            VirtualFile file,
-            String basePath,
-            SmartSearchQuery query,
-            ProjectFileIndex fileIndex,
-            ProgressIndicator indicator,
-            List<DeepSearchResult> results
-    ) {
-        ProgressManager.checkCanceled();
-        indicator.checkCanceled();
-        if (results.size() >= MAX_RESULTS) {
-            return;
-        }
-
-        if (file.isDirectory()) {
-            if (!file.equals(root) && shouldSkipProjectDirectory(file, fileIndex)) {
-                return;
-            }
-            for (VirtualFile child : file.getChildren()) {
-                collectProjectMatches(root, child, basePath, query, fileIndex, indicator, results);
+        VfsUtilCore.visitChildrenRecursively(baseDirectory, new VirtualFileVisitor<Void>() {
+            @Override
+            public boolean visitFile(@NotNull VirtualFile file) {
                 if (results.size() >= MAX_RESULTS) {
-                    return;
+                    return false;
                 }
+                ProgressManager.checkCanceled();
+                indicator.checkCanceled();
+
+                if (file.isDirectory()) {
+                    return !shouldSkipProjectDirectory(file, fileIndex);
+                }
+
+                if (fileIndex.isInLibrary(file)) {
+                    return true;
+                }
+
+                String path = displayProjectPath(file, basePath);
+                String source = MyMessageBundle.message("toolwindow.DeepProjectSearch.source.project");
+                boolean pathMatched = query.matchesPath(file.getName(), path);
+                TextMatch textMatch = findTextMatch(file, query, indicator);
+                if (!pathMatched && textMatch == null) {
+                    return true;
+                }
+                if (textMatch != null) {
+                    source = source + " line " + textMatch.lineNumber();
+                }
+
+                results.add(new DeepSearchResult(
+                        DeepSearchResult.SourceType.PROJECT,
+                        file.getName(),
+                        path,
+                        source,
+                        textMatch == null ? -1 : textMatch.lineNumber(),
+                        textMatch == null ? -1 : textMatch.columnNumber(),
+                        textMatch == null ? "" : textMatch.preview(),
+                        file
+                ));
+                return true;
             }
-            return;
-        }
-
-        if (fileIndex.isInLibrary(file)) {
-            return;
-        }
-
-        String path = displayProjectPath(file, basePath);
-        String source = MyMessageBundle.message("toolwindow.DeepProjectSearch.source.project");
-        boolean pathMatched = query.matchesPath(file.getName(), path);
-        TextMatch textMatch = findTextMatch(file, query);
-        if (!pathMatched && textMatch == null) {
-            return;
-        }
-        if (textMatch != null) {
-            source = source + " line " + textMatch.lineNumber();
-        }
-
-        results.add(new DeepSearchResult(
-                DeepSearchResult.SourceType.PROJECT,
-                file.getName(),
-                path,
-                source,
-                textMatch == null ? -1 : textMatch.lineNumber(),
-                textMatch == null ? -1 : textMatch.columnNumber(),
-                textMatch == null ? "" : textMatch.preview(),
-                file
-        ));
+        });
     }
 
     private static void searchDependencyRoots(Project project, SmartSearchQuery query, ProgressIndicator indicator, List<DeepSearchResult> results) {
@@ -131,7 +125,45 @@ final class DeepSearchService {
             if (results.size() >= MAX_RESULTS) {
                 return;
             }
-            collectDependencyMatches(root, root, query, indicator, results);
+            VfsUtilCore.visitChildrenRecursively(root, new VirtualFileVisitor<Void>() {
+                @Override
+                public boolean visitFile(@NotNull VirtualFile file) {
+                    if (results.size() >= MAX_RESULTS) {
+                        return false;
+                    }
+                    ProgressManager.checkCanceled();
+                    indicator.checkCanceled();
+
+                    if (file.isDirectory()) {
+                        return true;
+                    }
+
+                    String relativePath = VfsUtilCore.getRelativePath(file, root, '/');
+                    String path = relativePath == null ? file.getPath() : relativePath;
+                    boolean pathMatched = query.matchesPath(file.getName(), path);
+                    TextMatch textMatch = findTextMatch(file, query, indicator);
+                    if (!pathMatched && textMatch == null) {
+                        return true;
+                    }
+
+                    String source = dependencySourceName(root);
+                    if (textMatch != null) {
+                        source = source + " line " + textMatch.lineNumber();
+                    }
+
+                    results.add(new DeepSearchResult(
+                            DeepSearchResult.SourceType.DEPENDENCY,
+                            file.getName(),
+                            path,
+                            source,
+                            textMatch == null ? -1 : textMatch.lineNumber(),
+                            textMatch == null ? -1 : textMatch.columnNumber(),
+                            textMatch == null ? "" : textMatch.preview(),
+                            file
+                    ));
+                    return true;
+                }
+            });
         }
     }
 
@@ -141,67 +173,22 @@ final class DeepSearchService {
         if (baseDirectory == null) {
             return;
         }
-        collectFrontendDependencyRoots(baseDirectory, roots, indicator);
-    }
+        VfsUtilCore.visitChildrenRecursively(baseDirectory, new VirtualFileVisitor<Void>() {
+            @Override
+            public boolean visitFile(@NotNull VirtualFile file) {
+                ProgressManager.checkCanceled();
+                indicator.checkCanceled();
 
-    private static void collectFrontendDependencyRoots(VirtualFile directory, Set<VirtualFile> roots, ProgressIndicator indicator) {
-        ProgressManager.checkCanceled();
-        indicator.checkCanceled();
-        if (!directory.isDirectory()) {
-            return;
-        }
-        if (FRONTEND_DEPENDENCY_DIRECTORIES.contains(directory.getName())) {
-            roots.add(directory);
-            return;
-        }
-        if (shouldSkipFrontendRootScan(directory)) {
-            return;
-        }
-        for (VirtualFile child : directory.getChildren()) {
-            collectFrontendDependencyRoots(child, roots, indicator);
-        }
-    }
-
-    private static void collectDependencyMatches(VirtualFile root, VirtualFile file, SmartSearchQuery query, ProgressIndicator indicator, List<DeepSearchResult> results) {
-        ProgressManager.checkCanceled();
-        indicator.checkCanceled();
-        if (results.size() >= MAX_RESULTS) {
-            return;
-        }
-
-        if (file.isDirectory()) {
-            for (VirtualFile child : file.getChildren()) {
-                collectDependencyMatches(root, child, query, indicator, results);
-                if (results.size() >= MAX_RESULTS) {
-                    return;
+                if (file.isDirectory()) {
+                    if (FRONTEND_DEPENDENCY_DIRECTORIES.contains(file.getName())) {
+                        roots.add(file);
+                        return false;
+                    }
+                    return !shouldSkipFrontendRootScan(file);
                 }
+                return true;
             }
-            return;
-        }
-
-        String relativePath = VfsUtilCore.getRelativePath(file, root, '/');
-        String path = relativePath == null ? file.getPath() : relativePath;
-        boolean pathMatched = query.matchesPath(file.getName(), path);
-        TextMatch textMatch = findTextMatch(file, query);
-        if (!pathMatched && textMatch == null) {
-            return;
-        }
-
-        String source = dependencySourceName(root);
-        if (textMatch != null) {
-            source = source + " line " + textMatch.lineNumber();
-        }
-
-        results.add(new DeepSearchResult(
-                DeepSearchResult.SourceType.DEPENDENCY,
-                file.getName(),
-                path,
-                source,
-                textMatch == null ? -1 : textMatch.lineNumber(),
-                textMatch == null ? -1 : textMatch.columnNumber(),
-                textMatch == null ? "" : textMatch.preview(),
-                file
-        ));
+        });
     }
 
     private static boolean shouldSkipProjectDirectory(VirtualFile directory, ProjectFileIndex fileIndex) {
@@ -209,35 +196,38 @@ final class DeepSearchService {
     }
 
     private static boolean shouldSkipFrontendRootScan(VirtualFile directory) {
-        return !directory.isDirectory() || SKIPPED_PROJECT_DIRECTORIES.contains(directory.getName());
+        return SKIPPED_PROJECT_DIRECTORIES.contains(directory.getName());
     }
 
-    private static TextMatch findTextMatch(VirtualFile file, SmartSearchQuery query) {
+    private static TextMatch findTextMatch(VirtualFile file, SmartSearchQuery query, ProgressIndicator indicator) {
         if (!file.isValid() || file.getLength() > MAX_TEXT_FILE_BYTES || file.getFileType().isBinary()) {
             return null;
         }
 
-        try {
-            String text = VfsUtilCore.loadText(file);
-            int firstIndex = query.findContentIndex(text);
-            if (firstIndex < 0) {
-                return null;
+        Charset charset = file.getCharset();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), charset))) {
+            String line;
+            int lineNumber = 0;
+            while ((line = reader.readLine()) != null) {
+                lineNumber++;
+                indicator.checkCanceled();
+                int columnNumber = query.findInLine(line, 0);
+                if (columnNumber >= 0) {
+                    return new TextMatch(lineNumber, columnNumber, buildPreview(line));
+                }
             }
-            int lineStart = text.lastIndexOf('\n', Math.max(0, firstIndex - 1)) + 1;
-            int lineEnd = text.indexOf('\n', firstIndex);
-            if (lineEnd < 0) {
-                lineEnd = text.length();
-            }
-            int lineNumber = StringUtil.offsetToLineNumber(text, firstIndex) + 1;
-            int columnNumber = Math.max(0, firstIndex - lineStart);
-            return new TextMatch(lineNumber, columnNumber, buildPreview(text.substring(lineStart, lineEnd)));
-        } catch (Exception ignored) {
+            return null;
+        } catch (IOException ignored) {
             return null;
         }
     }
 
     private static String buildPreview(String lineText) {
-        String preview = lineText.replace('\t', ' ').trim().replaceAll("\\s+", " ");
+        String preview = lineText.replace('\t', ' ').trim();
+        if (preview.isEmpty()) {
+            return preview;
+        }
+        preview = WHITESPACE.matcher(preview).replaceAll(" ");
         if (preview.length() <= MAX_PREVIEW_CHARS) {
             return preview;
         }

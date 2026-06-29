@@ -3,6 +3,7 @@ package com.origin.idea;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -77,24 +78,59 @@ final class SmartSearchQuery {
     }
 
     boolean matchesPath(String name, String path) {
-        String haystack = normalized(name + " " + path, caseSensitive);
+        String haystack = name + " " + path;
         return switch (mode) {
-            case TERMS -> termsMatch(haystack);
-            case PHRASE -> haystack.contains(text);
+            case TERMS -> termsMatch(normalized(haystack, caseSensitive));
+            case PHRASE -> indexOf(haystack, text, caseSensitive) >= 0;
             case WILDCARD -> pattern.matcher(name).matches() || pattern.matcher(path).matches();
-            case REGEX -> pattern.matcher(name + " " + path).find();
+            case REGEX -> pattern.matcher(haystack).find();
         };
     }
 
     int findContentIndex(String textContent) {
-        String searchableText = normalized(textContent, caseSensitive);
+        if (caseSensitive) {
+            return switch (mode) {
+                case TERMS -> findTermsIndex(textContent);
+                case PHRASE -> textContent.indexOf(text);
+                case WILDCARD -> -1;
+                case REGEX -> {
+                    var matcher = pattern.matcher(textContent);
+                    yield matcher.find() ? matcher.start() : -1;
+                }
+            };
+        }
+        String lowered = textContent.toLowerCase(Locale.ROOT);
         return switch (mode) {
-            case TERMS -> findTermsIndex(searchableText);
-            case PHRASE -> searchableText.indexOf(text);
+            case TERMS -> findTermsIndex(lowered);
+            case PHRASE -> lowered.indexOf(text);
             case WILDCARD -> -1;
             case REGEX -> {
                 var matcher = pattern.matcher(textContent);
                 yield matcher.find() ? matcher.start() : -1;
+            }
+        };
+    }
+
+    int findInLine(String line, int startOffset) {
+        if (caseSensitive) {
+            return switch (mode) {
+                case TERMS -> findTermsIndex(line, startOffset);
+                case PHRASE -> line.indexOf(text);
+                case WILDCARD -> -1;
+                case REGEX -> {
+                    Matcher matcher = pattern.matcher(line);
+                    yield matcher.find(startOffset) ? matcher.start() : -1;
+                }
+            };
+        }
+        String lowered = line.toLowerCase(Locale.ROOT);
+        return switch (mode) {
+            case TERMS -> findTermsIndex(lowered, startOffset);
+            case PHRASE -> lowered.indexOf(text);
+            case WILDCARD -> -1;
+            case REGEX -> {
+                Matcher matcher = pattern.matcher(line);
+                yield matcher.find(startOffset) ? matcher.start() : -1;
             }
         };
     }
@@ -129,6 +165,23 @@ final class SmartSearchQuery {
         return regex.toString();
     }
 
+    private static int indexOf(String haystack, String needle, boolean caseSensitive) {
+        if (caseSensitive) {
+            return haystack.indexOf(needle);
+        }
+        int max = haystack.length() - needle.length();
+        outer:
+        for (int i = 0; i <= max; i++) {
+            for (int j = 0; j < needle.length(); j++) {
+                if (!haystack.regionMatches(true, i + j, needle, j, 1)) {
+                    continue outer;
+                }
+            }
+            return i;
+        }
+        return -1;
+    }
+
     private boolean termsMatch(String haystack) {
         for (String term : terms) {
             if (!haystack.contains(term)) {
@@ -139,7 +192,11 @@ final class SmartSearchQuery {
     }
 
     private int findTermsIndex(String searchableText) {
-        int index = 0;
+        return findTermsIndex(searchableText, 0);
+    }
+
+    private int findTermsIndex(String searchableText, int startOffset) {
+        int index = startOffset;
         int firstIndex = -1;
         for (String term : terms) {
             index = searchableText.indexOf(term, index);

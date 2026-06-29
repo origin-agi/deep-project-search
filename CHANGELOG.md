@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Replaced manual `getChildren()` recursion with `VirtualFileVisitor` to eliminate excessive VFS notifications that trigger IDE performance warnings.
+- Replaced full-file `loadText()` with line-by-line streaming in text content search, reducing memory usage.
+- Pre-compiled whitespace regex to avoid recompiling `Pattern` on every preview build.
+- Batch-updated list model and used `StringBuilder` in the result renderer to reduce EDT string allocations.
+- Added missing cancellation checks inside recursive file traversal loops.
+
 ## [0.2.0]
 
 ### Added

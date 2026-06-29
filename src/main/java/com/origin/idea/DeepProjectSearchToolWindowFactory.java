@@ -65,7 +65,7 @@ public final class DeepProjectSearchToolWindowFactory implements ToolWindowFacto
         private final JTextField queryField;
         private final JComboBox<SearchScopeOption> scopeComboBox = new JComboBox<>(SearchScopeOption.values());
         private final JCheckBox caseSensitiveCheckBox = new JCheckBox(MyMessageBundle.message("toolwindow.DeepProjectSearch.caseSensitive"));
-        private final DefaultListModel<DeepSearchResult> resultListModel = new DefaultListModel<>();
+        private DefaultListModel<DeepSearchResult> resultListModel = new DefaultListModel<>();
         private final JBList<DeepSearchResult> resultList = new JBList<>(resultListModel);
         private final JBLabel statusLabel = new JBLabel(MyMessageBundle.message("toolwindow.DeepProjectSearch.status.ready"));
         private final JBPanel<?> content = new JBPanel<>(new BorderLayout(0, 10));
@@ -173,10 +173,12 @@ public final class DeepProjectSearchToolWindowFactory implements ToolWindowFacto
         }
 
         private void showResults(List<DeepSearchResult> results) {
-            resultListModel.clear();
+            DefaultListModel<DeepSearchResult> newModel = new DefaultListModel<>();
             for (DeepSearchResult result : results) {
-                resultListModel.addElement(result);
+                newModel.addElement(result);
             }
+            resultList.setModel(newModel);
+            resultListModel = newModel;
             if (!results.isEmpty()) {
                 resultList.setSelectedIndex(0);
                 resultList.requestFocusInWindow();
@@ -265,15 +267,17 @@ public final class DeepProjectSearchToolWindowFactory implements ToolWindowFacto
         public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
             Component component = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (component instanceof JLabel label && value instanceof DeepSearchResult result) {
+                StringBuilder sb = new StringBuilder("<html><b>");
+                sb.append(escapeHtml(result.getName())).append("</b> <small>")
+                        .append(escapeHtml(result.getSourceType().name())).append("</small><br><small>")
+                        .append(escapeHtml(result.getPath())).append("<br>")
+                        .append(escapeHtml(result.getSource())).append("</small>");
                 String preview = result.getPreview();
-                String previewHtml = preview == null || preview.isBlank()
-                        ? ""
-                        : "<br><small><code>" + escapeHtml(preview) + "</code></small>";
-                label.setText("<html><b>" + escapeHtml(result.getName()) + "</b> <small>"
-                        + escapeHtml(result.getSourceType().name()) + "</small><br><small>"
-                        + escapeHtml(result.getPath()) + "<br>"
-                        + escapeHtml(result.getSource()) + "</small>"
-                        + previewHtml + "</html>");
+                if (preview != null && !preview.isBlank()) {
+                    sb.append("<br><small><code>").append(escapeHtml(preview)).append("</code></small>");
+                }
+                sb.append("</html>");
+                label.setText(sb.toString());
                 label.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
             }
             return component;
