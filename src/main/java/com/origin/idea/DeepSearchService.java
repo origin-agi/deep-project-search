@@ -90,7 +90,9 @@ final class DeepSearchService {
                 String path = displayProjectPath(file, basePath);
                 String source = MyMessageBundle.message("toolwindow.DeepProjectSearch.source.project");
                 boolean pathMatched = query.matchesPath(file.getName(), path);
-                TextMatch textMatch = findTextMatch(file, query, indicator);
+                TextMatch textMatch = pathMatched || !query.canMatchContent()
+                        ? null
+                        : findTextMatch(file, query, indicator);
                 if (!pathMatched && textMatch == null) {
                     return true;
                 }
@@ -141,7 +143,9 @@ final class DeepSearchService {
                     String relativePath = VfsUtilCore.getRelativePath(file, root, '/');
                     String path = relativePath == null ? file.getPath() : relativePath;
                     boolean pathMatched = query.matchesPath(file.getName(), path);
-                    TextMatch textMatch = findTextMatch(file, query, indicator);
+                    TextMatch textMatch = pathMatched || !query.canMatchContent()
+                            ? null
+                            : findTextMatch(file, query, indicator);
                     if (!pathMatched && textMatch == null) {
                         return true;
                     }

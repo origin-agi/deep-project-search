@@ -2,6 +2,13 @@
 
 # Deep Project Search Changelog
 
+## [0.2.2]
+
+### Fixed
+
+- Skipped text content scanning when the file path already matched the query, so a path hit no longer triggers an unnecessary line-by-line read.
+- Skipped text content scanning for wildcard queries, which match file names and paths only and can never match file content.
+
 ## [Unreleased]
 
 ### Fixed

@@ -88,5 +88,6 @@
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="DeepProjectSearch" factoryClass="com.origin.idea.DeepProjectSearchToolWindowFactory"
                     icon="AllIcons.Actions.Search"/>
+        <errorHandler implementation="com.intellij.diagnostic.JetBrainsMarketplaceErrorReportSubmitter"/>
     </extensions>
 </idea-plugin>

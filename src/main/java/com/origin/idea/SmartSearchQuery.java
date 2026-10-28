@@ -77,6 +77,10 @@ final class SmartSearchQuery {
         return scope.includesDependencies();
     }
 
+    boolean canMatchContent() {
+        return mode != MatchMode.WILDCARD;
+    }
+
     boolean matchesPath(String name, String path) {
         String haystack = name + " " + path;
         return switch (mode) {
